@@ -1,8 +1,8 @@
 # OpenClaw Beginner Workshop
 **Participant guide for securely setting up OpenClaw on a VPS**
 
-> **Last reviewed:** 2026-03-26  
-> **Last tested with:** OpenClaw v2026.3.13  
+> **Last reviewed:** 2026-04-01  
+> **Last tested with:** OpenClaw v2026.3.31  
 > **Update policy:** this is a living guide; update this note in the same PR as any version-sensitive instruction changes.
 
 > **What you'll leave with:** a secured VPS running an always-on OpenClaw Gateway, a working Control UI accessed via SSH tunnel, a personalized workspace (SOUL/USER/TOOLS/AGENTS/LEARNINGS), safe defaults (loopback bind + auth + pairing), Telegram connected, memory flush enabled, optional session-memory search, and a starter skill + automation plan.
@@ -107,27 +107,6 @@ What actually helps:
 - **Limit dangerous tools** to trusted contexts — `exec`, `browser`, `web_fetch` don't need to be on for every session.
 - **Enable sandboxing** for tool execution where possible — sandbox mode isolates exec from your gateway host.
 
-### The hardened baseline (we'll apply this during install)
-This is the safe-by-default config we'll use. You can loosen it later as you learn:
-
-```json5
-{
-  gateway: {
-    mode: "local",
-    bind: "loopback",
-    auth: { mode: "token" },  // wizard generates token
-  },
-  channels: {
-    telegram: {
-      dmPolicy: "pairing",
-      groups: { "*": { requireMention: true } },
-    },
-  },
-}
-```
-
-Loopback means only local connections work (we access via SSH tunnel). Pairing means strangers can't just DM your bot. Require-mention means the bot stays quiet in groups unless addressed.
-
 > **Note (v2026.3.x security):** As of v2026.3.2, plaintext `ws://` WebSocket connections are enforced loopback-only by default. v2026.3.11 added further hardening — browser origin validation is now enforced for all browser-originated connections even in trusted-proxy mode, closing another cross-site WebSocket hijacking path. v2026.3.12 switched device pairing to short-lived bootstrap tokens, and v2026.3.13 made setup codes single-use. Each release has made the defaults safer.
 
 ---
@@ -151,9 +130,11 @@ ssh root@YOUR_IP_ADDRESS
 # enter the root password you were given
 ```
 
+Now you are in! Somethimes you have to approve the connection first (type `yes` and hit enter), and some VPS providers force you to chose a new root password. Don't lose this password! Store it securily in your password manager.
+
 > ⚠️ **First time in a terminal?** When you type your password, **nothing will appear on screen** — no dots, no asterisks, no moving cursor. This is normal. The terminal is hiding your input so nobody looking over your shoulder can see it. Just type (or paste) your password and press Enter. It's there, you just can't see it for nerd reasons. Copy-pasting the password is recommended to avoid typos.
 
-If you get a "host key verification failed" error (rare in workshops), remove the old entry:
+If you get a "host key verification failed" error (rare in workshops where you use a fresh VPS), remove the old entry:
 ```bash
 ssh-keygen -R YOUR_IP_ADDRESS
 ```
@@ -163,6 +144,9 @@ ssh-keygen -R YOUR_IP_ADDRESS
 
 ```bash
 adduser openclaw
+# you new have to enter a password for this new user, enter the password and hit enter.
+# you can skip the following questions (full name, etc) by just keeping it empty and hitting enter.
+# Answer with Y on the "is the information correct?" question and hit enter
 usermod -aG sudo openclaw
 ```
 
@@ -210,7 +194,9 @@ MaxAuthTries 5
 LoginGraceTime 60
 ```
 
-Save and exit, then validate the config before restarting:
+Probably some of these lines are commented out with the `#` symbol, remove that symbol.
+
+Save and exit (you do this with `control + x` and then `y` and hit enter), then validate the config before restarting:
 
 ```bash
 sudo sshd -t
@@ -232,7 +218,7 @@ ssh root@YOUR_IP_ADDRESS
 #### C) Set up fail2ban to block brute-force attempts
 fail2ban watches your SSH logs and temporarily bans IPs that fail too many login attempts.
 
-✅ On the VPS:
+✅ On the VPS, now logged in with the openclaw user:
 
 ```bash
 sudo apt update && sudo apt install -y fail2ban
@@ -255,6 +241,8 @@ maxretry = 5
 findtime = 600
 bantime  = 3600
 ```
+
+And save the file (`control + x` and then `y` and hit enter).
 
 This means: 5 failed attempts within 10 minutes → banned for 1 hour.
 
@@ -315,7 +303,7 @@ From here on, assume you're `openclaw` unless a command uses `sudo`.
 
 ## Part 4: Install and onboard OpenClaw (Gateway + Control UI)
 
-> **Version used in this guide:** v2026.3.13 (last reviewed March 26, 2026). Runtime requirement: **Node ≥ 22**.
+> **Version used in this guide:** v2026.3.31 (last reviewed April 1, 2026). Runtime requirement: **Node ≥ 22**.
 
 ### Step 4.1 — Install OpenClaw CLI
 ✅ On the VPS as `openclaw`:
@@ -326,38 +314,32 @@ curl -fsSL --proto '=https' --tlsv1.2 https://openclaw.ai/install.sh | bash
 
 > **What the installer does:** it detects and installs Node 22 if needed (via NodeSource on Ubuntu), ensures Git is present, installs the OpenClaw CLI globally via npm, and optionally launches the onboarding wizard. No `sudo` wrapper needed — the script handles elevated operations internally where required.
 
-Close and reopen your SSH session if `openclaw` isn't found right away.
+Answer `yes` on the question "I understand this is personal-by-default and shared/multi-user use requires lock-down. Continue?" (you can move with arrows), when `yes` is selected, hit enter.
+
+### Step 4.2 — Run the onboarding wizard
+After installation the onboarding wizard will automatically start.
+
+During onboarding:
+* Select `QuickStart` as the **setup mode**.
+* Choose `Anthropic` as your **model provider**.
+  *  Pick `Antropic API key` as the Anthropic **auth method**.
+  * Paste your Antropic API key 
+* Keep the **default model** or switch to your preferred model (personally I like Opus 4.6 the best)
+* Select `Skip for now` on the **Select channel** question (we set up Telegram later)
+* Select `Skip for now` on the **Search provider** question (we set up Brave Search later)
+* Select `no` when asked to **Configure skills now?**
+* Select `Skip for now` (select with the space bar), on the **Enable hooks?** step
+* Select `I'll do this later` on the question **How do you want to hatch your bot?**
+
+Now OpenClaw should be fully installed!
 
 Verify:
 ```bash
-openclaw --version    # should show 2026.3.13 or later
+openclaw --version    # should show 2026.3.31 or later
 node --version        # should show v22.x.x or higher
 ```
 
-### Step 4.2 — Run the onboarding wizard
-✅ On the VPS:
-
-```bash
-openclaw onboard --install-daemon
-```
-
-During onboarding:
-- Choose your **model provider** (Anthropic recommended).
-- Set a **Gateway auth token** (the wizard usually generates one).
-- Keep **bind = loopback** (default) for safety.
-- Skip any "public exposure" options.
-
-After onboarding, your config is at `~/.openclaw/openclaw.json`. You can confirm the path with:
-
-```bash
-openclaw config file
-```
-
-You can read/edit config via:
-- `openclaw config get <path>`
-- `openclaw config set <path> <value>`
-
-> **v2026.3.1+ tip:** The release notes now recommend that agents call `config.schema` before editing config fields to avoid guessing valid keys and values. You don't need to do this manually — it's guidance for the AI agent itself when you ask it to change settings.
+If you see an "openclaw not found" message, close and reopen your terminal.
 
 ### Step 4.3 — Verify the Gateway is running
 ✅ On the VPS:
@@ -376,14 +358,12 @@ openclaw status
 ✅ On the VPS:
 
 ```bash
-openclaw agent --message "Hello! Confirm you're running and tell me the active model."
+openclaw agent --agent main --message "Hello! Confirm you're running and tell me the active model."
 ```
 
 If this fails, check:
 - `openclaw status`
-- `openclaw config get gateway.auth.*`
-- `openclaw --version`
-- `openclaw doctor` (for general diagnostics)
+- `openclaw doctor --fix` (for general diagnostics)
 
 ### Step 4.4 — Open the Control UI safely (SSH tunnel)
 1) Keep your SSH session to the VPS open (where the Gateway runs).
@@ -399,11 +379,11 @@ ssh -N -L 18789:127.0.0.1:18789 openclaw@YOUR_IP_ADDRESS
 
 ### Step 4.5 — Authenticate to the Control UI
 
-The quickest way: run `openclaw status` on the VPS — it prints the Gateway URL and auth state. If you used the onboarding wizard, it likely already printed the dashboard URL with a token you can paste into your browser.
-
 **Option A — direct URL with token (quickest):**
 
-Get your Gateway token on the VPS:
+The quickest way: run `openclaw dashboard` on the VPS — it prints the Dashboard URL including token (so the long url), copy and paste that in your browser.
+
+If this doesn not work, get your Gateway token on the VPS:
 
 ```bash
 openclaw config get gateway.auth.token
@@ -431,6 +411,8 @@ openclaw devices approve <ID>  # approve the pending device
 ```
 
 Once paired, your browser is remembered and you won't need to re-authenticate.
+
+You are now in the OpenClaw control panel. Please remember to run the command under 4.4 every time you want to use this interface.
 
 ### Step 4.6 — Run the security audit (first time)
 ✅ On the VPS:
@@ -526,7 +508,7 @@ Then you (the human) should:
 ### Step 5.4 — Make your SOUL.md not boring
 The default SOUL.md from onboarding tends to be generic. Here's how to fix that — paste this prompt to your agent (adapted from Peter Steinberger's viral SOUL.md rewrite):
 
-> "Read your SOUL.md. Now rewrite it with these changes:
+> "Read your SOUL.md. Now rewrite it with these changes in mind:
 > 1. You have opinions now. Strong ones. Stop hedging everything with 'it depends' — commit to a take.
 > 2. Delete every rule that sounds corporate. If it could appear in an employee handbook, it doesn't belong here.
 > 3. Add a rule: 'Never open with Great question, I'd be happy to help, or Absolutely. Just answer.'
@@ -590,41 +572,14 @@ You need an OpenAI key for two things: memory search embeddings (uses `text-embe
 ✅ On the VPS:
 
 ```bash
-nano ~/.bashrc
+openclaw onboard --auth-choice openai-api-key
 ```
 
-Add:
+* Yes
+* Select Quickstart
+* Keep existing values
+* Provide OpenAI API key
 
-```bash
-export OPENAI_API_KEY="sk-your_key_here"
-```
-
-Save, exit, reload:
-
-```bash
-source ~/.bashrc
-```
-
-If OpenClaw runs as a systemd service, also add it there:
-
-```bash
-sudo systemctl edit openclaw-gateway
-```
-
-Add under `[Service]`:
-
-```ini
-Environment=OPENAI_API_KEY=sk-your_key_here
-```
-
-Then:
-
-```bash
-sudo systemctl daemon-reload
-sudo systemctl restart openclaw-gateway
-```
-
-> **Better approach (post-workshop):** Instead of env vars in `.bashrc` and systemd overrides, consider using OpenClaw's **SecretRef** system (introduced in v2026.2.26). SecretRef lets you define named secret providers (env, file, or exec-based) and reference secrets by ID across your config. The Gateway resolves them at startup and fails fast if any are missing. See Part 12 or the docs at `docs.openclaw.ai/gateway/secrets` for details.
 
 ### Step 6.3 — Set up the model ladder via prompting
 ✅ In the Control UI, tell your agent:
@@ -654,60 +609,102 @@ sudo systemctl restart openclaw-gateway
 ### The problem
 When sessions get long, OpenClaw compacts (summarizes) older context to stay within the model's context window. If important details were never written to files, they can be lost.
 
-### Step 7.1 — Enable automatic memory flush (pre-compaction)
+### Step 7.1 — Verify and tune automatic memory flush (pre-compaction)
+
+As of v2026.3.31, memory flush before compaction is **enabled by default** on fresh installs with compaction mode `safeguard` and a soft threshold of 4,000 tokens. You no longer need to enable it manually — but you should verify it's active and tune one critical parameter.
+
 ✅ In the Control UI, tell your agent:
 
-> "Enable memory flush before compaction with these settings:
-> - Compaction mode: safeguard
-> - Memory flush: enabled
-> - Soft threshold: 4000 tokens
+> "Verify that memory flush before compaction is enabled and show me the current settings. Then update with these tuned values:
+> - Compaction mode: safeguard (should already be default)
+> - Memory flush: enabled (should already be default)
+> - Soft threshold: 4000 tokens (should already be default)
+> - **reserveTokensFloor: 40000** (override the 20000 default — token estimation can jump past the threshold in a single large turn, bypassing flush entirely; 40k gives enough headroom)
 > - System prompt: 'Session nearing compaction. Store durable memories now.'
 > - Flush prompt: 'Write any lasting notes to memory/YYYY-MM-DD.md; reply with NO_REPLY if nothing to store.'
 > - Confirm the changes after applying."
 
-### Step 7.2 — Enable session transcript indexing (optional, experimental)
-This lets `memory_search` also surface relevant snippets from past session JSONLs (not just MEMORY.md + daily notes). It uses OpenAI's `text-embedding-3-small` for embeddings — that's why you set up the OpenAI API key in Part 6.
+⚠️ **Known gap:** Memory flush does **not** run on `/new` or `/reset` commands (tracked in Issues #8185, #41216, #45608). If you use `/new` to start fresh sessions, anything unsaved in the conversation is silently lost. Until this ships, manually ask your agent to save important context before resetting.
+
+### Step 7.2 — Enable session transcript indexing (optional, still experimental)
+
+This lets `memory_search` also surface relevant snippets from past session JSONLs (not just MEMORY.md + daily notes). As of v2026.3.31, this feature is **still experimental** and has not graduated to stable.
+
+The embedding system is now **provider-agnostic** with auto-detection. OpenClaw picks the embedding model from your available API keys — supporting OpenAI (`text-embedding-3-small`), Gemini (`gemini-embedding-001`), Voyage, Mistral, and local models via Ollama. If no embedding provider is available, search falls back to **BM25 keyword-only** mode using SQLite FTS5.
+
+The built-in memory backend now uses **hybrid search** combining vector similarity (cosine via `sqlite-vec`) and BM25 keyword relevance, with default weights of 0.7 vector / 0.3 keyword. Optional post-processing includes MMR (Maximal Marginal Relevance) for deduplication and temporal decay (half-life 30 days) to boost newer memories.
 
 ✅ In the Control UI, tell your agent:
 
 > "Enable experimental session memory indexing. Set memory search sources to both 'memory' and 'sessions'. Confirm the changes after applying."
 
+💡 **Multi-agent tip (new in v2026.3.31):** If you run multiple agents and want them to selectively access each other's session history, use `memorySearch.qmd.extraCollections` to opt into cross-agent session search without flattening all transcript collections into a shared namespace.
+
 ### Step 7.3 — Know the built-in memory tools
 ✅ On the VPS:
 ```bash
-openclaw memory status
-openclaw memory index
+openclaw memory status       # shows provider, model, indexed file count, chunk count, vector/FTS availability
+openclaw memory index        # reindex memory files (add --force for full reindex)
 openclaw memory search "what did we decide about pricing?"
 ```
 
+New flags available on all memory commands: `--deep`, `--verbose`, `--json`, and `--agent <id>` (for multi-agent setups).
+
+### The 8-file bootstrap architecture
+
+OpenClaw now auto-loads exactly **8 bootstrap files** at session start. This has expanded beyond the original 5-file structure. Notably, **LEARNINGS.md was never a standard auto-loaded file** — it only surfaces through `memory_search`, not automatic loading.
+
+| File | Purpose | Loaded when |
+|---|---|---|
+| **AGENTS.md** | Operating manual, boot sequence, behavioral rules | Every turn; visible to sub-agents |
+| **SOUL.md** | Persona, tone, values, communication style | Every turn |
+| **TOOLS.md** | Environment-specific notes (SSH hosts, TTS voices, devices) | Every turn |
+| **USER.md** | Human profile and preferences | DM sessions only; NOT visible to sub-agents |
+| **IDENTITY.md** | Name, emoji, avatar, self-description | Every turn |
+| **HEARTBEAT.md** | Periodic task instructions | Runs every 30 minutes |
+| **BOOTSTRAP.md** | First-run onboarding | One-shot; only for new workspaces |
+| **MEMORY.md** | Long-term curated facts, preferences, decisions | DM session start |
+
+Daily logs remain at `memory/YYYY-MM-DD.md` — today's and yesterday's notes are auto-loaded. Files not in this list are **never auto-injected into context**; they must be retrieved via `memory_search` or `memory_get`.
+
 ### The memory rules that prevent "agent amnesia"
-1. **If it must persist, write it** (USER.md, TOOLS.md, MEMORY.md, LEARNINGS.md, or daily log).
-2. **Use daily logs for messy context; curate MEMORY.md and LEARNINGS.md weekly.**
-3. **Don't store secrets in workspace files.** Keep API keys in env vars / SecretRef providers.
-4. **Keep system files lean.** Huge AGENTS/SOUL files waste context tokens.
-5. **Enable memoryFlush** so compaction doesn't silently erase decisions.
+1. **If it must persist, write it** (MEMORY.md, daily logs, or structured files in your workspace).
+2. **Make retrieval mandatory.** Add an explicit rule to AGENTS.md instructing the agent to search memory before acting on any non-trivial request.
+3. **Use daily logs for messy context; curate MEMORY.md weekly.** Keep MEMORY.md under ~3,000 tokens.
+4. **If you maintain a LEARNINGS.md, know it won't auto-load** — it's only surfaced via `memory_search`. Consider putting critical learnings into AGENTS.md instead if you want them in every session.
+5. **Don't store secrets in workspace files.** Keep API keys in env vars / SecretRef providers.
+6. **Keep system files lean.** Huge AGENTS.md and SOUL.md files waste context tokens on every turn.
+7. **Memory flush is now on by default** — but verify it's active and bump `reserveTokensFloor` to 40,000.
 
 ### Weekly QMD (Quality Memory Digest) — prevent memory bloat
-After a few weeks, daily logs pile up and semantic search slows down. The community solution is a **weekly QMD compression**: at the end of each week, have your agent (or a cron job) summarize the week's daily logs into a single digest file (`memory/archive/YYYY-MM-DD-to-DD.qmd.md`), then archive the individual daily files. This keeps your active memory directory lean while preserving searchable weekly summaries.
+After a few weeks, daily logs pile up and semantic search slows down. OpenClaw has **not added built-in garbage collection or automated archival** — the community solution remains a **weekly QMD compression**: at the end of each week, have your agent (or a cron job) summarize the week's daily logs into a single digest file (`memory/archive/YYYY-MM-DD-to-DD.qmd.md`), then archive the individual daily files. This keeps your active memory directory lean while preserving searchable weekly summaries.
 
-You can automate this with a cron job or add it to your heartbeat/weekly maintenance. After a few months you'll have ~4 digest files per month instead of 30 daily logs.
+**Use cron, not heartbeat.** Heartbeat costs an LLM call every interval (~96/day at 15 minutes). Cron uses shell script filters and invokes the LLM only when needed (~5-10/day). The built-in cron system persists jobs at `~/.openclaw/cron/jobs.json` and supports cron expressions, one-shot timestamps, and interval schedules with per-job model overrides.
 
 ✅ In the Control UI, tell your agent:
 
-> "Set up a weekly cron job that runs every Sunday at 23:00 in my timezone. It should:
+> "Set up a weekly cron job (not heartbeat) that runs every Sunday at 23:00 in my timezone. It should:
 > 1. Collect all daily logs from memory/ for the past 7 days
 > 2. Summarize them into a single digest file at memory/archive/YYYY-MM-DD-to-DD.qmd.md — keep decisions, outcomes, key facts, and learnings; drop routine chatter
 > 3. Move the original daily files into memory/archive/raw/ (don't delete them, just get them out of the active directory)
-> 4. If any patterns or repeated mistakes show up in the week's logs, add them to LEARNINGS.md
+> 4. If any patterns or repeated mistakes show up in the week's logs, add them to AGENTS.md under a 'Learnings' section (so they auto-load every session)
 > 5. Run on haiku to keep costs low
 > Create the memory/archive/ and memory/archive/raw/ directories if they don't exist. Confirm the cron setup after applying."
 
+For transaction log cleanup, use a simple shell script on a system cron:
+```bash
+find ~/.openclaw/agents/*/communications/ -name "*.jsonl" -mtime +30 -exec gzip {} \;
+find ~/.openclaw/agents/*/communications/archive/ -name "*.jsonl.gz" -mtime +365 -delete
+```
+
 ### Practical tips from the community
-- **Get your memory structure in first.** Set up MEMORY.md, LEARNINGS.md, and daily logs before you start using the agent for real work. Your conversations from day one will then be useful.
+- **Get your memory structure in first.** Set up MEMORY.md, AGENTS.md, SOUL.md, USER.md, TOOLS.md, and daily logs before you start using the agent for real work. Your conversations from day one will then be useful.
 - **Every time your bot asks you for help, ask it: "How can I remove this bottleneck?"** Each time you have to do something manually, ask this question. Over time the agent becomes increasingly autonomous.
-- **Use Telegram group chats to separate projects.** Create a separate group chat for each project and add your bot to it. Context stays clean in each chat instead of everything bleeding together in one conversation.
+- **Use Telegram group chats to separate projects.** Create a separate group chat for each project and add your bot to it. Context stays clean in each chat instead of everything bleeding together in one conversation. ⚠️ A regression in v2026.3.2 caused secondary Telegram accounts to connect but not process messages — verify multi-account functionality works on your version before relying on it.
 - **Give your bot its own accounts for external services** (its own email, its own GitHub, etc.) — never your personal ones. If something breaks, the blast radius stays contained.
 - **Separate transaction logs from narrative logs.** Daily logs (`memory/YYYY-MM-DD.md`) should contain narrative — what happened and why. High-volume transaction data (email logs, command execution logs, tool usage) should go into separate structured files (e.g., `communications/YYYY-MM.jsonl`). This prevents transaction noise from drowning out the operational signal in your daily notes.
+- **Prefer cron over heartbeat for scheduled tasks.** Heartbeat triggers an LLM call on every interval; cron invokes the model only when its shell filter matches. Significant cost savings at scale.
+- **Consider third-party memory plugins for heavier workloads.** Honcho (cross-session memory), Hindsight (automated fact extraction), Mem0 (persistent memory immune to compaction), and Cognee (knowledge graph memory) can reduce or eliminate manual memory management — evaluate whether the built-in file-based system is sufficient for your use case or whether a plugin would pay for itself.
 
 ---
 
