@@ -44,8 +44,8 @@ Read [workshop.md](./workshop.md) from top to bottom and work through the sectio
 
 This is a living guide.
 
-- Last reviewed: `2026-03-26`
-- Last tested with OpenClaw: `v2026.3.13`
+- Last reviewed: `2026-04-15`
+- Last tested with OpenClaw: `v2026.4.14`
 
 If a future PR changes version-sensitive instructions, update those notes in the same PR.
 

@@ -1,8 +1,8 @@
 # OpenClaw Beginner Workshop
 **Participant guide for securely setting up OpenClaw on a VPS**
 
-> **Last reviewed:** 2026-04-01  
-> **Last tested with:** OpenClaw v2026.3.31  
+> **Last reviewed:** 2026-04-15  
+> **Last tested with:** OpenClaw v2026.4.14  
 > **Update policy:** this is a living guide; update this note in the same PR as any version-sensitive instruction changes.
 
 > **What you'll leave with:** a secured VPS running an always-on OpenClaw Gateway, a working Control UI accessed via SSH tunnel, a personalized workspace (SOUL/USER/TOOLS/AGENTS/LEARNINGS), safe defaults (loopback bind + auth + pairing), Telegram connected, memory flush enabled, optional session-memory search, and a starter skill + automation plan.
@@ -107,7 +107,7 @@ What actually helps:
 - **Limit dangerous tools** to trusted contexts — `exec`, `browser`, `web_fetch` don't need to be on for every session.
 - **Enable sandboxing** for tool execution where possible — sandbox mode isolates exec from your gateway host.
 
-> **Note (v2026.3.x security):** As of v2026.3.2, plaintext `ws://` WebSocket connections are enforced loopback-only by default. v2026.3.11 added further hardening — browser origin validation is now enforced for all browser-originated connections even in trusted-proxy mode, closing another cross-site WebSocket hijacking path. v2026.3.12 switched device pairing to short-lived bootstrap tokens, and v2026.3.13 made setup codes single-use. Each release has made the defaults safer.
+> **Note (v2026.3–4.x security):** Plaintext `ws://` WebSocket connections are loopback-only by default (v2026.3.2). Browser origin validation is enforced even in trusted-proxy mode (v2026.3.11). Device pairing uses short-lived, single-use bootstrap tokens (v2026.3.12–13). Node pairing now requires explicit command-execution approval — pairing alone no longer grants execute (v2026.3.31). Non-admin sessions can only manage their own devices (v2026.4.5). The Control UI renderer was swapped to markdown-it to close a ReDoS class of issues (v2026.4.14). Each release tightens the defaults — keep `openclaw update` as a weekly habit.
 
 ---
 
@@ -303,7 +303,7 @@ From here on, assume you're `openclaw` unless a command uses `sudo`.
 
 ## Part 4: Install and onboard OpenClaw (Gateway + Control UI)
 
-> **Version used in this guide:** v2026.3.31 (last reviewed April 1, 2026). Runtime requirement: **Node ≥ 22**.
+> **Version used in this guide:** v2026.4.14 (last reviewed April 15, 2026). Runtime requirement: **Node ≥ 22** (Node 24 is recommended for fresh installs — the installer picks it automatically; existing Node 22 installs continue to work).
 
 ### Step 4.1 — Install OpenClaw CLI
 ✅ On the VPS as `openclaw`:
@@ -335,8 +335,8 @@ Now OpenClaw should be fully installed!
 
 Verify:
 ```bash
-openclaw --version    # should show 2026.3.31 or later
-node --version        # should show v22.x.x or higher
+openclaw --version    # should show 2026.4.14 or later
+node --version        # should show v22.x.x or higher (v24 is fine)
 ```
 
 If you see an "openclaw not found" message, close and reopen your terminal.
@@ -435,13 +435,20 @@ chmod 600 ~/.openclaw/openclaw.json
 
 Why: anything under `~/.openclaw/` may contain tokens, session transcripts, or credentials. Treat disk access as the trust boundary.
 
-### ⚠️ Breaking changes since v2026.3.2
-Several breaking changes landed between v2026.3.2 and v2026.3.13 that you should know about:
+### ⚠️ Breaking changes to be aware of
+Fresh installs following this guide won't hit these — the installer and doctor handle it. But if you're upgrading an older Gateway or copying config from elsewhere, know that:
 
 - **Default toolset** (v2026.3.2): New installations default to a "messaging" tool configuration instead of the broad programming toolset. Your agent won't have `exec`, `browser`, or other power tools unless you enable them.
-- **Gateway auth** (v2026.3.3): If you configure both `token` and `password` auth, you must now explicitly set `gateway.auth.mode` to one of them. The wizard handles this for fresh installs, but be aware if you edit config manually.
-- **Workspace plugin auto-load disabled** (v2026.3.12): Cloned repositories can no longer execute workspace plugin code without an explicit trust decision. This is a security improvement — you'll need to explicitly enable any workspace plugins you want to use.
-- **Pairing tokens are now short-lived and single-use** (v2026.3.12/3.13): Setup codes no longer embed shared gateway credentials. This is purely a security improvement and doesn't change the user experience.
+- **Gateway auth** (v2026.3.3): If you configure both `token` and `password` auth, you must now explicitly set `gateway.auth.mode` to one of them.
+- **Workspace plugin auto-load disabled** (v2026.3.12): Cloned repositories can no longer execute workspace plugin code without an explicit trust decision.
+- **Pairing tokens are now short-lived and single-use** (v2026.3.12/3.13): Setup codes no longer embed shared gateway credentials.
+- **Legacy env vars removed** (v2026.3.22): Any `CLAWDBOT_*` / `MOLTBOT_*` env vars must be renamed to `OPENCLAW_*`. Same release made ClawHub the default plugin/skill registry.
+- **Legacy TCP bridge keys removed** (v2026.3.24): The Gateway refuses to start if `bridge.*` config keys are still present. Run `openclaw doctor --fix`.
+- **Node pairing is no longer auto-execute** (v2026.3.31): Paired nodes must now be explicitly approved before they can run commands.
+- **Config paths migrated** (v2026.4.2): xAI and Firecrawl config moved under `plugins.entries.*`. `openclaw doctor --fix` rewrites the keys for you.
+- **Legacy config aliases dropped** (v2026.4.5): A batch of old keys (old `talk.*`, `browser.ssrfPolicy.allowPrivateNetwork`, `hooks.internal.handlers`, per-channel allow toggles, etc.) no longer resolve. Again, `openclaw doctor --fix` is the one command to run.
+
+> **After any `openclaw update`, always run `openclaw doctor --fix` before restarting the Gateway.** It migrates config keys, rewrites deprecated paths, and flags anything it can't auto-resolve.
 
 ---
 
@@ -548,9 +555,9 @@ Not every task needs the most expensive model. Think of it as a 4-tier ladder:
 
 The key insight: your heartbeat runs every 30 minutes. If that's on Opus, you're burning money for tasks Haiku handles perfectly. Conversely, don't let Haiku handle complex reasoning — it's more susceptible to prompt injection and makes worse decisions on ambiguous tasks.
 
-> **v2026.3.12 tip: `/fast` mode.** You can now toggle fast mode per-session with the `/fast` slash command. This uses priority service tiers at your provider (available for both Anthropic and OpenAI) — faster responses at potentially higher cost. Useful when you need snappy replies during active work, then toggle it off for background tasks.
+> **Built-in model aliases (v2026.3.24+).** OpenClaw now ships with seven aliases ready to use out of the box — `opus`, `sonnet`, `gpt`, `gpt-mini`, `gemini`, `gemini-flash`, `gemini-flash-lite` — so `/model opus` and `/model sonnet` work without any prior config. You can still define your own aliases (e.g. `haiku`, `codex`), but you don't need to just to switch models.
 
-> **v2026.3.1 note:** Adaptive thinking is now the default level for Claude 4.6 models. This means Claude will automatically calibrate its reasoning depth per task. You don't need to configure this manually, but you can override it per-agent if desired.
+> **Useful slash commands.** `/fast` toggles priority service tiers at your provider for snappier replies (v2026.3.12). `/btw` lets you drop a tangential note or follow-up into chat without polluting the main thread (v2026.3.22) — great when you remember something mid-conversation. `/tasks` opens the background task board (v2026.4.1). Adaptive thinking is on by default for Claude 4.6 — you don't need to configure it.
 
 ### Step 6.1 — Update OpenClaw if needed
 ✅ On the VPS:
@@ -853,9 +860,9 @@ Prompt template you can paste:
 > Place it under `<workspace>/skills/{service}` and show me the resulting SKILL.md for review."
 
 ### Community skills (ClawHub) — proceed carefully
-ClawHub is a public skill registry. Use it for discovery, but **inspect before installing**.
+ClawHub is a public skill registry, and as of v2026.3.22 it's the **default** registry `openclaw plugins install` checks first (falling back to npm). That makes discovery easy — but it also means it's easy to install something you haven't read. Community reporting from March–April 2026 suggests around 10% of ClawHub entries contain risky or malicious code.
 
-Public skill marketplaces are useful for discovery, but they are **not** a trust boundary. Even well-meaning submissions can be unsafe, outdated, or more powerful than you expect. **Treat skills as code you're running on your machine.**
+**Treat skills as code you're running on your machine.** Public skill marketplaces are useful for discovery, but they are **not** a trust boundary. Even well-meaning submissions can be unsafe, outdated, or more powerful than you expect. Prefer skills with many installs, a named author you recognize, and a readable SKILL.md.
 
 ✅ Safer workflow (staging directory):
 ```bash
@@ -899,15 +906,16 @@ The heartbeat model was already configured as part of the model routing setup in
 openclaw cron list
 ```
 
-### Heartbeat cost optimization: lightContext
-If you want to minimize tokens consumed by heartbeat runs, enable the **lightweight bootstrap** mode introduced in v2026.3.1. This loads only HEARTBEAT.md into context for heartbeat runs, skipping the full workspace bootstrap (AGENTS.md, SOUL.md, etc.):
+### Heartbeat cost optimization: isolatedSession + lightContext
+Heartbeats default to running inside your main session with full workspace bootstrap, which is expensive. Two flags (both out-of-the-box config, no plugins) knock the per-run cost down by ~95%:
 
 ```json5
 {
   agents: {
     defaults: {
       heartbeat: {
-        lightContext: true,  // only load HEARTBEAT.md
+        isolatedSession: true,  // run in its own session, not main (v2026.3.24)
+        lightContext: true,     // only load HEARTBEAT.md, skip AGENTS/SOUL/etc. (v2026.3.1)
         every: "30m",
         model: "anthropic/claude-haiku-4-5",
       },
@@ -916,7 +924,7 @@ If you want to minimize tokens consumed by heartbeat runs, enable the **lightwei
 }
 ```
 
-This dramatically reduces per-heartbeat token spend. At 48 heartbeats/day on Haiku with lightContext, you're looking at pennies per day instead of dollars.
+`isolatedSession` alone drops per-heartbeat cost from ~100k tokens to 2–5k. Combined with `lightContext`, 48 heartbeats/day on Haiku is pennies. The trade-off: the heartbeat won't see your main session's recent messages — so keep heartbeat tasks self-contained (summarize yesterday's log, trim oversized files, check a watchlist) rather than "follow up on what we just discussed."
 
 ### The "cheap heartbeat" pattern
 An even more aggressive optimization: don't call an LLM at all for most heartbeats. Instead, run a lightweight shell script that checks conditions (new emails? file changes? calendar events?) and only invokes the model when there's actual signal. The HEARTBEAT_OK token tells OpenClaw to suppress delivery when nothing needs attention.
@@ -952,6 +960,10 @@ Crons run at specific times and are ideal for:
 openclaw cron list
 openclaw cron status
 ```
+
+> **Set cron session retention to 24 hours.** Old cron session transcripts accumulate forever by default and gradually slow things down. Add `cron.sessionRetention: "24h"` to `~/.openclaw/openclaw.json` (or ask your agent to set it) — it prunes cron sessions older than a day. This is a known silent-degradation pitfall called out in the March 2026 community write-ups.
+
+> **Tighten cron jobs with `--tools` (v2026.4.1).** When you create a cron job, pass `--tools` to limit which tools that specific job can use (e.g. `openclaw cron add … --tools memory,file_write`). A job that only edits memory doesn't need `exec` or `browser` — keep the blast radius small.
 
 ---
 
@@ -1023,8 +1035,9 @@ OpenClaw stores session transcripts as JSONL files. Any process or user with fil
 - When in doubt, revert to the hardened baseline config from Part 2.
 
 ### After upgrading: things stopped working
-- Run `openclaw doctor` — it handles migrations and flags breaking changes.
-- Check the release notes for BREAKING changes (especially: v2026.3.2 default toolset changed to "messaging"; v2026.3.3 requires explicit `gateway.auth.mode`; v2026.3.12 disabled implicit workspace plugin auto-load).
+- Run `openclaw doctor --fix` first — it migrates config keys (including the v2026.4.2 xAI/Firecrawl moves and the v2026.4.5 legacy-alias cleanup) and flags anything it can't auto-resolve.
+- If the Gateway refuses to start after an upgrade, it's almost always a removed config key. Read the doctor output — it names the exact key and the replacement.
+- Check the release notes for BREAKING changes (see the list in Part 4). Common ones: v2026.3.2 default toolset "messaging"; v2026.3.22 `CLAWDBOT_*`/`MOLTBOT_*` env vars removed; v2026.3.24 TCP `bridge.*` keys removed; v2026.3.31 node pairing no longer auto-execute.
 - Run `openclaw backup create` before major upgrades so you can roll back if needed.
 
 ---
@@ -1036,7 +1049,7 @@ Before you leave, confirm:
 - [ ] UFW is enabled and only port 22 is open
 - [ ] `~/.openclaw/` has permissions 700, config has 600
 - [ ] `openclaw status` is healthy
-- [ ] `openclaw --version` shows 2026.3.13 or later
+- [ ] `openclaw --version` shows 2026.4.14 or later (and `openclaw doctor --fix` is clean)
 - [ ] Control UI works via SSH tunnel + token
 - [ ] Workspace files exist and are reviewed (AGENTS/SOUL/USER/TOOLS/LEARNINGS)
 - [ ] SOUL.md has personality (not corporate boilerplate)
@@ -1049,7 +1062,8 @@ Before you leave, confirm:
 ---
 
 ## Appendix: After the workshop
-- **Back up your state** (new in v2026.3.13): OpenClaw now has built-in backup support. Run `openclaw backup create` to archive your config, credentials, and workspace into a local tarball. Verify with `openclaw backup verify`. Use `--only-config` to skip workspace files, or `--no-include-workspace` for a minimal backup. Do this before major upgrades.
+- **Back up your state** before major upgrades: `openclaw backup create` archives config, credentials, and workspace into a local tarball. Verify with `openclaw backup verify`. Use `--only-config` to skip workspace files, or `--no-include-workspace` for a minimal backup.
+- **Inspect and tune exec policy** with `openclaw exec-policy show` (v2026.4.10). For most beginners the default preset is fine, but it's useful to know the command exists before you start enabling tools like `exec` or `browser`.
 - **Upgrade to SSH key auth** (recommended): generate a key with `ssh-keygen -t ed25519`, copy it with `ssh-copy-id openclaw@YOUR_IP`, then disable password auth in `/etc/ssh/sshd_config` (`PasswordAuthentication no`) and restart SSH. This is the gold standard for server access.
 - **Set up SecretRef** for all API keys (see Part 12). Move secrets out of plaintext config and `.bashrc` into env/file/exec providers.
 - Add a GitHub backup automation (deploy key + private repo + nightly cron).
