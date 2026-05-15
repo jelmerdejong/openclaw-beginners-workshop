@@ -216,16 +216,19 @@ sudo fail2ban-client status sshd
 On the VPS:
 
 ```bash
+SSH_PORT=$(echo "$SSH_CONNECTION" | awk '{print $4}')
+SSH_PORT=${SSH_PORT:-22}
+echo "Allowing SSH on port ${SSH_PORT}"
 sudo ufw default deny incoming
 sudo ufw default allow outgoing
-sudo ufw allow 22/tcp
+sudo ufw allow "${SSH_PORT}/tcp"
 sudo ufw enable
 sudo ufw status verbose
 ```
 
-Important: do not open OpenClaw's Gateway port. We will use an SSH tunnel.
+This detects the SSH port used by your current session before enabling UFW. If your provider uses a non-standard SSH port, this avoids locking yourself out.
 
-If your provider uses a non-standard SSH port, allow that port before enabling UFW.
+Important: do not open OpenClaw's Gateway port. We will use an SSH tunnel.
 
 ### Step 3.7 - Updates and reboot
 
@@ -770,7 +773,7 @@ Example one-shot reminder:
 ```bash
 openclaw cron add \
   --name "Reminder" \
-  --at "2026-05-14T09:00:00+02:00" \
+  --at "$(date -d 'tomorrow 09:00' '+%Y-%m-%dT%H:%M:%S%:z')" \
   --session main \
   --system-event "Reminder: review OpenClaw workshop notes" \
   --wake now \
