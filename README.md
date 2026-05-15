@@ -11,32 +11,36 @@ Start here: [workshop.md](./workshop.md)
 The workshop walks through:
 
 - securing a fresh Ubuntu VPS before installing OpenClaw
-- installing OpenClaw and safely accessing the Control UI over an SSH tunnel
-- setting up workspace files, memory, model routing, Telegram, web search, skills, and automation
-- keeping a personal gateway maintainable over time
+- installing OpenClaw with the current stable Linux path
+- running the Gateway as an always-on service
+- safely accessing the Control UI over an SSH tunnel
+- setting up starter workspace files, memory habits, model routing, Telegram, web search, skills, and lightweight automation
+- maintaining, updating, backing up, and auditing a personal Gateway
 
 ## Who This Is For
 
 - absolute beginners to OpenClaw
 - people comfortable following copy/paste terminal steps
-- people running a personal OpenClaw gateway on Ubuntu 22.04+ or 24.04+
+- people running a personal OpenClaw Gateway on Ubuntu 22.04+ or 24.04+
 - Mac users for the laptop-side commands in the guide
 
 ## What You'll End Up With
 
 - a secured VPS running an OpenClaw Gateway
+- root SSH login disabled, fail2ban active, and UFW allowing SSH only
 - a working Control UI accessed through SSH tunneling
 - a starter workspace with safe defaults and memory habits
-- Telegram connected with pairing-based access
-- a baseline setup for skills, search, and lightweight automation
+- Telegram connected with pairing-based access, if configured
+- a baseline setup for skills, search, heartbeat, cron, and weekly maintenance
 
 ## Prerequisites
 
-- an Ubuntu 22.04+ or 24.04+ VPS with a public IP and root access
+- an Ubuntu 24.04 VPS recommended, or Ubuntu 22.04+ with a public IP and root access
 - a Mac with Terminal
-- Anthropic and OpenAI API keys
-- a Telegram account
-- a GitHub account
+- an Anthropic API key
+- optional: an OpenAI API key for embeddings, images, or direct OpenAI API usage
+- optional: a Telegram account and bot token
+- optional: a web search API key, such as Brave or Tavily
 
 ## How To Use This Repo
 
@@ -44,14 +48,17 @@ Read [workshop.md](./workshop.md) from top to bottom and work through the sectio
 
 This is a living guide.
 
-- Last reviewed: `2026-04-15`
-- Last tested with OpenClaw: `v2026.4.14`
+- Last reviewed: `2026-05-15`
+- Stable target: `OpenClaw v2026.5.12`
+- Fresh VPS E2E status: `pending in this workspace`
+
+The guide has been refreshed against the official OpenClaw docs and current stable GitHub release. A full live run still requires a disposable Ubuntu VPS plus temporary model, Telegram, and search credentials.
 
 If a future PR changes version-sensitive instructions, update those notes in the same PR.
 
 ## Contributing
 
-Pull requests are welcome for typo fixes, clarity improvements, broken commands, safer defaults, and OpenClaw version refreshes.
+Pull requests are welcome for typo fixes, clarity improvements, broken commands, safer defaults, live validation results, and OpenClaw version refreshes.
 
 For larger restructures or scope changes, open an issue or draft PR first so the workshop stays stable for new readers.
 
