@@ -368,8 +368,12 @@ Official current requirements: Node 24 is recommended, and Node 22.14+ is suppor
 On the VPS as `openclaw`:
 
 ```bash
-curl -fsSL --proto '=https' --tlsv1.2 https://openclaw.ai/install.sh | bash
+curl -fsSL --proto '=https' --tlsv1.2 https://openclaw.ai/install.sh -o /tmp/openclaw-install.sh
+less /tmp/openclaw-install.sh
+bash /tmp/openclaw-install.sh
 ```
+
+In `less`, press `q` to return to the shell after reviewing the installer.
 
 If the installer does not launch onboarding automatically, run:
 
@@ -595,7 +599,6 @@ If it does not exist:
 
 ```bash
 mkdir -p ~/.openclaw/workspace/memory
-mkdir -p ~/.openclaw/workspace/knowledge/obsidian
 ```
 
 ### Step 6.2 - Introduce yourself
@@ -731,7 +734,7 @@ Useful chat commands:
 /model
 /model list
 /model status
-/model anthropic/claude-opus-4-6
+/model anthropic/claude-opus-4-8
 /usage tokens
 ```
 
@@ -741,7 +744,7 @@ Use the strongest model you can afford for tool-enabled or ambiguous work. Use c
 
 | Tier | Example | Use for |
 | --- | --- | --- |
-| Deep reasoning | `anthropic/claude-opus-4-6` | Important decisions, ambiguous planning, security-sensitive tool use |
+| Deep reasoning | `anthropic/claude-opus-4-8` | Important decisions, ambiguous planning, security-sensitive tool use |
 | Standard work | `anthropic/claude-sonnet-4-6` | Daily assistant work, writing, summarization, light research |
 | Cheap background | provider's current small model | Simple heartbeat checks and low-risk cron summaries |
 | Code/Codex | current OpenAI/Codex route | Coding work when you have Codex auth configured |
@@ -758,7 +761,7 @@ OpenAI API-key usage and Codex subscription usage are separate surfaces in curre
 
 - Use OpenAI API-key onboarding for direct API usage, embeddings, images, speech, and similar non-agent OpenAI surfaces.
 - Use Codex/OpenAI Code auth when you want ChatGPT/Codex subscription-backed coding agents.
-- New OpenAI auth profiles should use the canonical `openai:*` provider id. If old config mentions `openai-codex`, run `openclaw doctor --fix` and inspect `openclaw models status`.
+- New OpenAI auth profiles should use slash-style `openai/*` model routes under the `openai` provider. If old config mentions legacy `codex/*` or `codex-cli/*` routes, run `openclaw doctor --fix` and inspect `openclaw models status`.
 - If a model route looks wrong after an update, run `openclaw update`, `openclaw doctor`, and `openclaw models status`.
 
 Set up an OpenAI API key if you want OpenAI-backed memory embeddings:
@@ -1108,7 +1111,7 @@ openclaw configure --section web
 
 Check that the Gateway process can see the relevant environment variable if you used env storage.
 
-## Optional add-on: external tools after week 2
+### Optional add-on - External Tools After Week 2
 
 Do not add email, calendar, GitHub, browser automation, payments, or social accounts during the first workshop run. Add them after the agent has a week of useful memory and you have a working approval queue.
 
@@ -1582,7 +1585,7 @@ Do not expose the Gateway directly to the public internet. If a public endpoint 
 
 This refresh adopts the external operating playbook best practices this way:
 
-| Practice from the PDF | Workshop treatment |
+| Practice from the operating playbook | Workshop treatment |
 | --- | --- |
 | Persistent assistant framing: identity, memory, tools, autonomy, accountability | Added to Part 1 as the reason for the full setup |
 | Specific identity, role, voice, and pushback permission | Added to Part 6 as `IDENTITY.md`, `SOUL.md`, and role-specific setup |
