@@ -316,7 +316,7 @@ Important safety rule: do not close your working public SSH session until you ha
 On the VPS:
 
 ```bash
-curl -fsSL https://tailscale.com/install.sh -o /tmp/tailscale-install.sh
+curl -fsSL --proto '=https' --tlsv1.2 https://tailscale.com/install.sh -o /tmp/tailscale-install.sh
 less /tmp/tailscale-install.sh
 sudo sh /tmp/tailscale-install.sh
 sudo tailscale up
