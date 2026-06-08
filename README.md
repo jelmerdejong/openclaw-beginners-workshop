@@ -14,7 +14,9 @@ The workshop walks through:
 - installing OpenClaw with the current stable Linux path
 - running the Gateway as an always-on service
 - safely accessing the Control UI over an SSH tunnel
-- setting up starter workspace files, memory habits, model routing, Telegram, web search, skills, and lightweight automation
+- setting up starter workspace files, memory habits, a daily operating loop, model routing, Telegram, web search, skills, and lightweight automation
+- using a trust ladder and draft-and-approve approval queue for risky actions
+- optional add-ons for Tailscale hardening and Obsidian-backed knowledge sharing
 - maintaining, updating, backing up, and auditing a personal Gateway
 
 ## Who This Is For
@@ -29,7 +31,8 @@ The workshop walks through:
 - a secured VPS running an OpenClaw Gateway
 - root SSH login disabled, fail2ban active, and UFW allowing SSH only
 - a working Control UI accessed through SSH tunneling
-- a starter workspace with safe defaults and memory habits
+- a starter workspace with safe defaults, memory habits, and first-week feedback loop
+- a draft-and-approve safety posture for external or irreversible actions
 - Telegram connected with pairing-based access, if configured
 - a baseline setup for skills, search, heartbeat, cron, and weekly maintenance
 
@@ -41,6 +44,7 @@ The workshop walks through:
 - optional: an OpenAI API key for embeddings, images, or direct OpenAI API usage
 - optional: a Telegram account and bot token
 - optional: a web search API key, such as Brave or Tavily
+- optional: a Tailscale account and/or Obsidian if you want those add-ons
 
 ## How To Use This Repo
 
@@ -48,11 +52,11 @@ Read [workshop.md](./workshop.md) from top to bottom and work through the sectio
 
 This is a living guide.
 
-- Last reviewed: `2026-05-15`
-- Stable target: `OpenClaw v2026.5.12`
+- Last reviewed: `2026-06-08`
+- Stable target: `OpenClaw v2026.6.1`
 - Fresh VPS E2E status: `pending in this workspace`
 
-The guide has been refreshed against the official OpenClaw docs and current stable GitHub release. A full live run still requires a disposable Ubuntu VPS plus temporary model, Telegram, and search credentials.
+The guide has been refreshed against the official OpenClaw docs and current GitHub release. A full live run still requires a disposable Ubuntu VPS plus temporary model, Telegram, and search credentials.
 
 If a future PR changes version-sensitive instructions, update those notes in the same PR.
 
