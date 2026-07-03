@@ -52,8 +52,8 @@ Read [workshop.md](./workshop.md) from top to bottom and work through the sectio
 
 This is a living guide.
 
-- Last reviewed: `2026-06-08`
-- Stable target: `OpenClaw v2026.6.1`
+- Last reviewed: `2026-07-03`
+- Stable target: `OpenClaw v2026.6.11`
 - Fresh VPS E2E status: `pending in this workspace`
 
 The guide has been refreshed against the official OpenClaw docs and current GitHub release. A full live run still requires a disposable Ubuntu VPS plus temporary model, Telegram, and search credentials.

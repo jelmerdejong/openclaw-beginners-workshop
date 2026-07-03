@@ -1,8 +1,8 @@
 # OpenClaw Beginner Workshop
 **Participant guide for securely setting up OpenClaw on a VPS**
 
-> - **Last reviewed:** 2026-06-08
-> - **Stable target:** OpenClaw v2026.6.1
+> - **Last reviewed:** 2026-07-03
+> - **Stable target:** OpenClaw v2026.6.11
 > - **Fresh VPS E2E status:** pending in this workspace. This guide was reviewed against the official OpenClaw docs and current GitHub release, but a disposable VPS and temporary provider credentials are still required for a full live run.
 > - **Update policy:** if a PR changes version-sensitive setup, update this note in the same PR.
 
@@ -98,6 +98,7 @@ For beginners, use this posture:
 - Groups require mention.
 - No public Gateway port.
 - No random community skills without review.
+- Gateway updated promptly when a new stable release ships. OpenClaw publishes security advisories in batches alongside stable releases.
 - Irreversible actions use a draft-and-approve workflow until trust is earned.
 - `openclaw security audit --deep` after setup and after major config changes.
 
@@ -108,9 +109,12 @@ For beginners, use this posture:
 3. Tool blast radius: letting untrusted messages drive shell, browser, filesystem, or message-send tools.
 4. Prompt injection: web pages, emails, attachments, or other users can try to trick the model into ignoring your intent.
 
+One June 2026 lesson worth internalizing: loopback binding is necessary but not sufficient. OpenClaw's 2026-06-30 advisory batch included authorization bugs *inside* the Gateway, such as an MCP loopback privilege bypass (patched in v2026.6.6) and exec-approval and plugin install-policy bypasses (patched by v2026.6.11). A private Gateway still needs prompt updates.
+
 What helps:
 
 - Keep inbound access tight.
+- Keep OpenClaw on the current stable release and read the advisory batch that ships with it.
 - Prefer stronger current-generation models for tool-enabled work.
 - Use web/search content as untrusted input.
 - Treat email, web pages, files, and group messages as untrusted instruction sources unless you explicitly confirm the action through a trusted channel.
@@ -361,7 +365,7 @@ sudo tailscale up --ssh
 
 ## Part 4: Install and onboard OpenClaw
 
-Official current requirements: Node 24 is recommended, and Node 22.14+ is supported. The installer handles Node for you on normal Linux installs.
+Official current requirements: Node 24 is recommended, and Node 22.19+ is the minimum supported. The installer handles Node for you on normal Linux installs.
 
 ### Step 4.1 - Install OpenClaw
 
@@ -380,6 +384,8 @@ If the installer does not launch onboarding automatically, run:
 ```bash
 openclaw onboard --flow quickstart --install-daemon
 ```
+
+Current OpenClaw also ships a conversational onboarding preview (`openclaw onboard --modern`, called Crestodian). For the workshop, stay on the classic QuickStart flow so the prompts match this guide.
 
 ### Step 4.2 - Onboarding choices
 
@@ -429,8 +435,8 @@ openclaw health
 
 Expected:
 
-- `openclaw --version` should show `2026.6.1` or later stable.
-- `node --version` should show Node 24 or at least Node 22.14+.
+- `openclaw --version` should show `2026.6.11` or later stable.
+- `node --version` should show Node 24 or at least Node 22.19+.
 - `openclaw doctor` should not report critical migration or auth failures.
 - `openclaw gateway status` should show the Gateway running.
 
@@ -553,7 +559,7 @@ tailscale serve status
 
 Open the HTTPS URL shown by Tailscale from a device logged into your tailnet.
 
-Current OpenClaw can accept Tailscale identity headers for the Control UI and WebSocket path when `gateway.auth.allowTailscale` is enabled. For the stricter beginner posture, keep explicit Gateway credentials required even over Tailscale:
+Current OpenClaw can accept Tailscale identity headers for the Control UI (not the HTTP API) when `gateway.auth.allowTailscale` is enabled. For the stricter beginner posture, keep explicit Gateway credentials required even over Tailscale:
 
 ```bash
 openclaw config set gateway.auth.allowTailscale false
@@ -1045,7 +1051,7 @@ openclaw pairing list telegram
 openclaw pairing approve telegram <CODE>
 ```
 
-Pairing codes are short-lived. If one expires, DM the bot again and approve the new code.
+Pairing codes are 8 characters, expire after one hour, and at most 3 can be pending per channel. If one expires, DM the bot again and approve the new code.
 
 Important: DM pairing grants DM access only. It does not automatically authorize group commands. For groups, configure explicit group policy and allowlists.
 
@@ -1057,6 +1063,7 @@ For beginner workshops:
 - Do not allow the bot in large public groups.
 - Do not enable broad message-send or delete actions until you understand the blast radius.
 - Put your numeric Telegram user ID in the allowlist if you want durable owner authorization.
+- Allowlist by numeric ID only, never by display name or username. A June 2026 advisory (CVE-2026-53857, in the Zalo channel) showed that display-name-based `allowFrom` lists can be bypassed by an attacker simply renaming their account. Pairing and numeric IDs bind to immutable identity.
 
 To find your ID without third-party bots, DM your bot and inspect OpenClaw logs:
 
@@ -1079,6 +1086,8 @@ openclaw configure --section web
 ```
 
 Choose one provider. Brave and Tavily are straightforward beginner options.
+
+Key-free providers (DuckDuckGo, Parallel Free, Ollama) exist, but since v2026.6.8 they are explicit opt-ins and are never auto-selected when no keyed provider is configured. For the workshop, use a keyed provider such as Brave or Tavily.
 
 Brave uses:
 
@@ -1202,11 +1211,14 @@ Use native OpenClaw commands:
 
 ```bash
 openclaw skills search "calendar"
-openclaw skills install <skill-slug>
+openclaw skills verify @owner/<skill-slug>
+openclaw skills install @owner/<skill-slug>
 openclaw skills update --all
 ```
 
-ClawHub is public. Treat it as discovery, not trust. Check owner, source, version, required permissions, scan/moderation status, and the `SKILL.md` before enabling anything.
+ClawHub is public. Treat it as discovery, not trust. Every skill now ships with a Skill Card (what it does, provenance) and is scanned by an audit pipeline (SkillSpector, VirusTotal, and ClawScan against the OWASP Agentic Skills Top 10), with statuses like `Pass`, `Review`, `Warn`, and `Malicious`. Run `openclaw skills verify` before installing and check owner, source, version, required permissions, audit status, and the `SKILL.md` itself.
+
+Automated scanning is a signal, not a guarantee. In June 2026, Unit 42 disclosed five malicious skills that evaded ClawHub screening, including one that padded its README to 22 MB so scanners declined to analyze it, plus infostealer droppers and affiliate-link injectors. The defense that still works is the boring one: read the skill source before enabling it, prefer established publishers with history, and watch for undocumented network endpoints in the skill's scripts.
 
 ## Part 12: Automation
 
@@ -1275,7 +1287,7 @@ Starter `HEARTBEAT.md` content:
 
 ### Cron
 
-Cron jobs are stored on the Gateway and survive restarts.
+Cron jobs and their run history are stored in the Gateway's SQLite store and survive restarts. Older installs with legacy JSON cron files are migrated automatically by `openclaw doctor --fix`.
 
 Useful commands:
 
@@ -1293,11 +1305,12 @@ openclaw cron add \
   --at "$(date -d 'tomorrow 09:00' '+%Y-%m-%dT%H:%M:%S%:z')" \
   --session main \
   --system-event "Reminder: review OpenClaw workshop notes" \
-  --wake now \
-  --delete-after-run
+  --wake now
 ```
 
-Prefer cron over heartbeat when exact timing matters or when you want isolated execution.
+One-shot `--at` jobs are removed after they run unless you pass `--keep-after-run`.
+
+Prefer cron over heartbeat when exact timing matters or when you want isolated execution. Note that jobs scheduled exactly on the top of the hour are automatically staggered by up to 5 minutes to spread load; pass `--exact` if precise timing matters.
 
 Keep background jobs cheap and sparse. A daily extraction or review job is usually enough for beginners; running an expensive model every few minutes can quietly create a large bill without improving the assistant.
 
@@ -1310,6 +1323,8 @@ Supported SecretRef shape:
 ```json
 { "source": "env", "provider": "default", "id": "OPENAI_API_KEY" }
 ```
+
+Legacy `secretref-env:ENV_VAR` marker strings are no longer accepted in config; use the structured object shape above.
 
 Useful commands:
 
@@ -1347,7 +1362,9 @@ openclaw backup create
 openclaw backup verify
 ```
 
-After updates, always read `openclaw doctor` output. It catches config migrations, stale auth routes, DM policy issues, and health problems.
+After updates, always read `openclaw doctor` output. It catches config migrations, stale auth routes, DM policy issues, and health problems. Recent releases moved cron jobs, auth profiles, and other legacy JSON state into SQLite, and renamed some channel config keys (for example Telegram `streamMode` became `channels.telegram.streaming`); `openclaw doctor --fix` performs these migrations.
+
+Also skim the release notes and the advisory batch when you update. OpenClaw publishes security advisories in batches alongside stable releases at https://github.com/openclaw/openclaw/security/advisories, and several June 2026 advisories affected loopback-only setups.
 
 Then run one real smoke test through the surfaces you use:
 
@@ -1462,8 +1479,8 @@ openclaw security audit --deep
 - [ ] `sudo -v` works for `openclaw`.
 - [ ] fail2ban is running.
 - [ ] UFW is enabled and only SSH is open.
-- [ ] `openclaw --version` shows `2026.6.1` or later stable.
-- [ ] `node --version` shows Node 24 or at least Node 22.14+.
+- [ ] `openclaw --version` shows `2026.6.11` or later stable.
+- [ ] `node --version` shows Node 24 or at least Node 22.19+.
 - [ ] `openclaw gateway status` is healthy.
 - [ ] `openclaw doctor` is clean or every warning is understood.
 - [ ] Control UI works through SSH tunnel.
@@ -1490,7 +1507,7 @@ These are useful after the workshop, not during the first setup:
 - Enable sandboxing for risky tools.
 - Use isolated cron jobs for daily reports and weekly reviews.
 - Explore session memory indexing only after understanding transcript privacy.
-- Evaluate Active Memory, QMD, dreaming, or third-party memory plugins only after the file-based memory setup is stable.
+- Evaluate Active Memory, QMD, LanceDB, dreaming, or third-party memory plugins only after the file-based memory setup is stable.
 - Expand Obsidian/wiki knowledge only after a small curated folder proves useful.
 - Pair local Mac/iOS/Android nodes only when you understand that node execution is operator-level capability on that device.
 
@@ -1607,8 +1624,8 @@ This refresh adopts the external operating playbook best practices this way:
 ## Sources reviewed for this refresh
 
 - OpenClaw documentation index: https://docs.openclaw.ai/llms.txt
-- OpenClaw latest GitHub release: https://github.com/openclaw/openclaw/releases/latest
-- Install and updating docs: https://docs.openclaw.ai/install/index and https://docs.openclaw.ai/install/updating
+- OpenClaw latest GitHub release: https://github.com/openclaw/openclaw/releases/latest (v2026.6.11, 2026-06-30) and https://docs.openclaw.ai/releases/2026.6.11
+- Install and updating docs: https://docs.openclaw.ai/install and https://docs.openclaw.ai/install/updating
 - Linux/VPS docs: https://docs.openclaw.ai/vps
 - Gateway docs: https://docs.openclaw.ai/gateway, https://docs.openclaw.ai/gateway/security, https://docs.openclaw.ai/gateway/tailscale, and https://docs.openclaw.ai/gateway/authentication
 - CLI docs: https://docs.openclaw.ai/cli, https://docs.openclaw.ai/cli/onboard, https://docs.openclaw.ai/cli/setup, https://docs.openclaw.ai/cli/skills, and https://docs.openclaw.ai/cli/wiki
@@ -1618,8 +1635,11 @@ This refresh adopts the external operating playbook best practices this way:
 - Web search docs: https://docs.openclaw.ai/tools/web and https://docs.openclaw.ai/tools/brave-search
 - Automation and secrets docs: https://docs.openclaw.ai/automation, https://docs.openclaw.ai/automation/cron-jobs, https://docs.openclaw.ai/cli/cron, and https://docs.openclaw.ai/cli/secrets
 - Recent release/security scan, max 30 days at review time:
-  - OpenClaw v2026.5.27 release writeup, 2026-05-28: https://openclaw-hub.com/blog/release-v2026.5.27
-  - OpenClaw 2026.6.1 community release analysis, 2026-06-01: https://senx.ai/openclaw-news/2026-06-01-openclaw-news
-  - The Claw Report news roundup, last updated 2026-06-08: https://www.theclawreport.com/
-  - Cloud Security Alliance OpenClaw Claw Chain CVE research note, 2026-05: https://labs.cloudsecurityalliance.org/wp-content/uploads/2026/05/CSA_research_note_openclaw-claw-chain-cve_20260517-csa-styled.pdf
-  - ClawHub Security Signals paper, 2026-05-31 snapshot: https://openclaw.ai/publications/clawhub-security-signals.pdf
+  - OpenClaw GitHub security advisories (batch published 2026-06-30 alongside v2026.6.11, including the MCP loopback privilege bypass GHSA-52xj-c9p8-78cv patched in 2026.6.6): https://github.com/openclaw/openclaw/security/advisories
+  - CVE-2026-53857 (Zalo `allowFrom` matched mutable display names), circulated 2026-06-24: https://advisories.gitlab.com/npm/openclaw/CVE-2026-53857/
+  - Unit 42, five malicious ClawHub skills evaded screening, 2026-06-23: https://unit42.paloaltonetworks.com/openclaw-ai-supply-chain-risk/
+  - OpenClaw + NVIDIA Skill Cards and SkillSpector announcement, 2026-06-01: https://openclaw.ai/blog
+  - ClawHub security audits doc (SkillSpector + VirusTotal + ClawScan, OWASP Agentic Skills Top 10): https://docs.openclaw.ai/clawhub/security-audits
+  - OpenClaw v2026.6.11 community release analysis, 2026-07-01: https://senx.ai/openclaw-news/2026-07-01-openclaw-news.html
+  - The Claw Report news roundup, reviewed 2026-07-03: https://www.theclawreport.com/
+  - Note: https://openclaw-hub.com/blog was unreachable (HTTP 403) at review time; nothing newer than its 2026-05-28 post is indexed.
