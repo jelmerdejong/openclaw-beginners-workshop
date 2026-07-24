@@ -10,11 +10,14 @@ Start here: [workshop.md](./workshop.md)
 
 The workshop walks through:
 
-- securing a fresh Ubuntu VPS before installing OpenClaw
+- securing a fresh Ubuntu VPS with key-only SSH before installing OpenClaw
 - installing OpenClaw with the current stable Linux path
 - running the Gateway as an always-on service
 - safely accessing the Control UI over an SSH tunnel
-- setting up starter workspace files, memory habits, a daily operating loop, model routing, Telegram, web search, skills, and lightweight automation
+- validating configuration and applying cautious tool/exec guardrails
+- setting up starter workspace files, a live `NOW.md`, memory habits with provenance, model routing, Telegram, web search, skills, and lightweight automation
+- activating three gold-standard output examples, a tested workflow-to-skill promotion gate, and a weekly evidence-based scorecard
+- running a repeatable five-task calibration suite with a concrete passing threshold
 - using a trust ladder and draft-and-approve approval queue for risky actions
 - optional add-ons for Tailscale hardening and Obsidian-backed knowledge sharing
 - maintaining, updating, backing up, and auditing a personal Gateway
@@ -29,9 +32,12 @@ The workshop walks through:
 ## What You'll End Up With
 
 - a secured VPS running an OpenClaw Gateway
-- root SSH login disabled, fail2ban active, and UFW allowing SSH only
+- root and password SSH login disabled, fail2ban active, and UFW allowing SSH only
 - a working Control UI accessed through SSH tunneling
-- a starter workspace with safe defaults, memory habits, and first-week feedback loop
+- validated OpenClaw config with cautious host-command approvals and elevated tools disabled
+- a starter workspace with safe defaults, current operating state, provenance-aware memory, and first-week feedback loop
+- three reviewed output examples and one skill promoted through manual runs plus normal/adversarial tests
+- a weekly agent scorecard and saved calibration baseline showing whether the agent is actually reliable
 - a draft-and-approve safety posture for external or irreversible actions
 - Telegram connected with pairing-based access, if configured
 - a baseline setup for skills, search, heartbeat, cron, and weekly maintenance
@@ -52,11 +58,11 @@ Read [workshop.md](./workshop.md) from top to bottom and work through the sectio
 
 This is a living guide.
 
-- Last reviewed: `2026-07-03`
-- Stable target: `OpenClaw v2026.6.11`
+- Last reviewed: `2026-07-24`
+- Stable target: `OpenClaw v2026.7.1`
 - Fresh VPS E2E status: `pending in this workspace`
 
-The guide has been refreshed against the official OpenClaw docs and current GitHub release. A full live run still requires a disposable Ubuntu VPS plus temporary model, Telegram, and search credentials.
+The guide has been refreshed against the official OpenClaw docs, the current GitHub release, and current Ubuntu Server security guidance. A full live run still requires a disposable Ubuntu VPS plus temporary model, Telegram, and search credentials.
 
 If a future PR changes version-sensitive instructions, update those notes in the same PR.
 
