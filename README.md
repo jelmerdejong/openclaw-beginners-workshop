@@ -15,7 +15,7 @@ The workshop walks through:
 - running the Gateway as an always-on service
 - safely accessing the Control UI over an SSH tunnel
 - validating configuration and applying cautious tool/exec guardrails
-- setting up starter workspace files, a live `NOW.md`, memory habits with provenance, model routing, Telegram, web search, skills, and lightweight automation
+- setting up starter workspace files, a live `NOW.md`, native dreaming, provenance-aware memory and verified keyword/semantic recall, model routing, Telegram, web search, skills, and lightweight automation
 - activating three gold-standard output examples, a tested workflow-to-skill promotion gate, and a weekly evidence-based scorecard
 - running a repeatable five-task calibration suite with a concrete passing threshold
 - using a trust ladder and draft-and-approve approval queue for risky actions
@@ -40,7 +40,7 @@ The workshop walks through:
 - a weekly agent scorecard and saved calibration baseline showing whether the agent is actually reliable
 - a draft-and-approve safety posture for external or irreversible actions
 - Telegram connected with pairing-based access, if configured
-- a baseline setup for skills, search, heartbeat, cron, and weekly maintenance
+- a baseline setup for skills, search, native automations, heartbeat monitor scratch, and weekly maintenance
 
 ## Prerequisites
 
@@ -58,11 +58,11 @@ Read [workshop.md](./workshop.md) from top to bottom and work through the sectio
 
 This is a living guide.
 
-- Last reviewed: `2026-07-24`
-- Stable target: `OpenClaw v2026.7.1`
-- Fresh VPS E2E status: `pending in this workspace`
+- Last reviewed: `2026-09-28`
+- Stable target: `OpenClaw v2026.9.6`
+- Fresh VPS E2E status: `not yet run for this revision`
 
-The guide has been refreshed against the official OpenClaw docs, the current GitHub release, and current Ubuntu Server security guidance. A full live run still requires a disposable Ubuntu VPS plus temporary model, Telegram, and search credentials.
+Version-sensitive OpenClaw instructions were checked against the v2026.9.6 CLI, bundled official docs, and stable release metadata. The review covers independent exec/elevated gates, rootless CLI installs, private workspace backups, and proof of unattended side effects. Existing Ubuntu security guidance was retained, not independently revalidated in this revision. A full live run still requires a disposable Ubuntu VPS plus temporary model, Telegram, and search credentials.
 
 If a future PR changes version-sensitive instructions, update those notes in the same PR.
 
